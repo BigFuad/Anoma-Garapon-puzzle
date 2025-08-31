@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GARAPON Puzzle — Easy · Medium · Hard</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0f12;
+    --card:#141821;
+    --card-2:#0f1218;
+    --text:#e7ebf3;
+    --muted:#93a0b4;
+    --accent:#ff3b30;
+    --accent-2:#ff9f0a;
+    --glass:rgba(255,255,255,.06);
+    --success:#22c55e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:radial-gradient(1200px 700px at 10% 0%, #1a2030 0%, #0b0e14 60%, #07090e 100%);
+    color:var(--text); font-family:Inter,system-ui,ui-sans-serif,Segoe UI,Roboto,Helvetica,Arial;
+    display:flex; align-items:center; justify-content:center; padding:22px;
+  }
+  .wrap{
+    width:min(1200px,96vw); display:grid; gap:18px;
+    grid-template-columns: 1.15fr .85fr;
+  }
+  @media (max-width:1000px){ .wrap{grid-template-columns:1fr; margin-top:12px} }
+  .panel{
+    background:linear-gradient(180deg,var(--card),var(--card-2));
+    border:1px solid #1b2331; border-radius:20px; padding:18px; box-shadow:0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .head{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:10px}
+  .title{
+    font-weight:900; letter-spacing:.5px; font-size:28px; display:flex; align-items:center; gap:12px;
+  }
+  .badge{font-size:12px; padding:4px 10px; border-radius:999px; background:linear-gradient(90deg,var(--accent),#ff5e57); box-shadow:0 6px 18px rgba(255,59,48,.35)}
+  .sub{color:var(--muted); font-size:13px}
+  .grid{
+    position:relative; width:100%; aspect-ratio:1/1; border-radius:16px; overflow:hidden;
+    background:#0b0e14;
+    border:1px solid #1b2331;
+  }
+  canvas{width:100%; height:100%; display:block; image-rendering:crisp-edges; image-rendering:pixelated}
+  .controls{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+  .controls .row{grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap}
+  .btn{
+    appearance:none; border:0; border-radius:12px; padding:12px 14px; font-weight:700; letter-spacing:.2px;
+    background:linear-gradient(180deg,#1c2432,#141b26); color:var(--text); cursor:pointer;
+    box-shadow:0 0 0 1px #1b2331 inset, 0 6px 20px rgba(0,0,0,.25);
+    transition:transform .08s ease, box-shadow .2s ease, filter .2s ease;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:linear-gradient(180deg,var(--accent),#d92b22); box-shadow:0 0 0 1px #ff6a61 inset, 0 10px 24px rgba(255,59,48,.35); color:#fff}
+  .btn.secondary{background:linear-gradient(180deg,#263149,#1a2233)}
+  .btn.good{background:linear-gradient(180deg,#2ed573,#1faf55)}
+  .btn.warn{background:linear-gradient(180deg,#ffb300,#e89000)}
+  .seg{
+    display:flex; align-items:center; background:linear-gradient(180deg,#161b25,#121722); border-radius:12px; padding:6px; gap:6px; border:1px solid #1b2331;
+  }
+  .seg > button{
+    flex:1; padding:10px 12px; background:transparent; border:0; border-radius:8px; color:var(--muted);
+    font-weight:700; cursor:pointer;
+  }
+  .seg > button.active{background:rgba(255,255,255,.06); color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .stat{
+    display:flex; align-items:center; gap:10px; background:linear-gradient(180deg,#121722,#0d121b);
+    padding:12px 14px; border-radius:12px; border:1px solid #1b2331; font-weight:700
+  }
+  .stat .big{font-size:22px}
+  .hint{
+    position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .25s ease;
+    border-radius:16px; overflow:hidden; outline:2px dashed rgba(255,255,255,.07); outline-offset:-8px
+  }
+  .hint.show{opacity:.9}
+  .imgfill{width:100%; height:100%; object-fit:cover}
+  .side{
+    display:grid; gap:14px; grid-auto-rows:min-content;
+  }
+  .note{font-size:12px; color:var(--muted)}
+  .footer{
+    color:var(--muted); text-align:center; font-size:12px; margin-top:6px
+  }
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:#091017; color:#eafff2;
+    border:1px solid #1b2a22; border-radius:12px; padding:12px 16px; font-weight:700; display:none;
+    box-shadow:0 12px 28px rgba(0,0,0,.45)
+  }
+  .toast.show{display:block; animation:fade 2.2s ease 1}
+  @keyframes fade{0%{opacity:0; transform:translate(-50%,10px)} 10%,80%{opacity:1; transform:translate(-50%,0)} 100%{opacity:0; transform:translate(-50%,10px)}}
+  .confetti{position:fixed; inset:0; pointer-events:none}
+  .small{font-size:11px; color:var(--muted)}
+  .file{display:inline-block; padding:10px 12px; background:linear-gradient(180deg,#1e2837,#15202c); border:1px solid #223047; border-radius:10px; cursor:pointer; font-weight:700}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:#0f1420; border:1px solid #1b2331; padding:2px 6px; border-radius:6px; font-size:12px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <div class="head">
+        <div class="title">🧩 GARAPON Puzzle <span class="badge">Daily Spin</span></div>
+        <button id="shuffleBtn" class="btn primary">Shuffle &amp; Start</button>
+      </div>
+      <div class="sub" style="margin-bottom:14px">
+        Click tiles adjacent to the empty slot, or use arrow keys. Toggle hint to peek at the original image.
+      </div>
+      <div class="grid" id="board">
+        <canvas id="puzzle"></canvas>
+        <div class="hint" id="hint"><img id="hintImg" class="imgfill" alt="hint"></div>
+      </div>
+      <div class="footer">
+        <span class="small">Pro tip:</span> Press <span class="kbd">H</span> for hint, <span class="kbd">R</span> to shuffle, <span class="kbd">←↑→↓</span> to move.
+      </div>
+    </section>
+
+    <aside class="panel side">
+      <div class="stat">
+        ⏱️ Time <span class="big" id="time">00:00</span>
+      </div>
+      <div class="stat">
+        🧮 Moves <span class="big" id="moves">0</span>
+      </div>
+
+      <div class="seg" role="group" aria-label="difficulty">
+        <button data-size="3" class="active">Easy 3×3</button>
+        <button data-size="4">Medium 4×4</button>
+        <button data-size="6">Hard 6×6</button>
+      </div>
+
+      <div class="row">
+        <button id="hintBtn" class="btn secondary">👀 Toggle Hint</button>
+        <button id="peekBtn" class="btn warn">🔍 Preview</button>
+      </div>
+
+      <div class="controls">
+        <button id="undoBtn" class="btn">↶ Undo</button>
+        <button id="redoBtn" class="btn">↷ Redo</button>
+        <button id="soundBtn" class="btn">🔈 Sound: On</button>
+        <button id="bestBtn" class="btn good">🏆 Best Times</button>
+        <button id="uploadBtn" class="file" title="Use your own image">📁 Use your image</button>
+        <input type="file" id="fileInput" accept="image/*" hidden />
+      </div>
+
+      <div class="note">
+        The puzzle slices your image into a sliding grid (with one blank). Shuffling guarantees a solvable layout.
+      </div>
+    </aside>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <canvas id="confetti" class="confetti"></canvas>
+
+<script>
+/* ==== Sliding Puzzle with Image Tiles ==================================== */
+const imgSrc = "garapon.png"; // Put your picture with this exact name next to index.html
+const canvas = document.getElementById('puzzle');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const hint = document.getElementById('hint');
+const hintImg = document.getElementById('hintImg');
+const timeEl = document.getElementById('time');
+const movesEl = document.getElementById('moves');
+const toast = document.getElementById('toast');
+
+const segButtons = [...document.querySelectorAll('.seg > button')];
+const shuffleBtn = document.getElementById('shuffleBtn');
+const hintBtn = document.getElementById('hintBtn');
+const peekBtn = document.getElementById('peekBtn');
+const undoBtn = document.getElementById('undoBtn');
+const redoBtn = document.getElementById('redoBtn');
+const bestBtn = document.getElementById('bestBtn');
+const soundBtn = document.getElementById('soundBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+
+let N = 3;                // grid size
+let tiles = [];           // 0..N*N-1 (0 is blank)
+let blank = 0;            // blank index
+let size = 600;           // canvas px
+let img = new Image();    // puzzle image
+let started = false;
+let timer = 0, interval = null;
+let moves = 0;
+let history = [], redoStack = [];
+let soundOn = true;
+
+// Fit canvas to container
+function fitCanvas(){
+  const board = document.getElementById('board').getBoundingClientRect();
+  const s = Math.floor(Math.min(board.width, board.height));
+  size = s; canvas.width = canvas.height = s;
+  draw();
+}
+window.addEventListener('resize', fitCanvas);
+
+// Load image
+function loadImage(src){
+  return new Promise((resolve,reject)=>{
+    const im = new Image();
+    im.onload = ()=>resolve(im);
+    im.onerror = reject;
+    im.src = src;
+  });
+}
+
+// Initialize
+(async function init(){
+  try {
+    img = await loadImage(imgSrc);
+  } catch {
+    // Fallback: tiny gradient placeholder
+    img = document.createElement('canvas');
+    img.width = img.height = 1024;
+    const c = img.getContext('2d');
+    const g = c.createLinearGradient(0,0,1024,1024);
+    g.addColorStop(0,'#dd2'); g.addColorStop(.5,'#e74'); g.addColorStop(1,'#833');
+    c.fillStyle=g; c.fillRect(0,0,1024,1024);
+    toastMsg("Couldn't find garapon.png — using a placeholder. Click ‘Use your image’ to load your own.");
+  }
+  hintImg.src = (img instanceof HTMLImageElement) ? img.src : img.toDataURL();
+  setDifficulty(3);
+  fitCanvas();
+})();
+
+// Build solved state
+function buildSolved(){
+  tiles = Array.from({length:N*N},(_,i)=>i);
+  blank = 0; // top-left by convention (we'll draw it transparent)
+}
+
+// Shuffle to solvable state
+function shuffle(){
+  // Random swaps until solvable; then perform a bunch of valid moves from solved to mix
+  buildSolved();
+  // Do random legal moves from solved to guarantee solvable layout
+  let pos = indexToRC(blank);
+  for(let i=0;i<N*N*20;i++){
+    const nbrs = neighbors(rcToIndex(pos.r,pos.c));
+    const choice = nbrs[Math.floor(Math.random()*nbrs.length)];
+    moveTile(choice, false); // no history
+  }
+  started = true; moves = 0; history = []; redoStack = [];
+  resetTimer(); startTimer();
+  draw();
+}
+function startTimer(){
+  clearInterval(interval);
+  timer = 0; interval = setInterval(()=>{timer++; renderHUD()}, 1000);
+}
+function resetTimer(){ clearInterval(interval); interval = null; timer = 0; renderHUD(); }
+function formatTime(sec){
+  const m = String(Math.floor(sec/60)).padStart(2,'0');
+  const s = String(sec%60).padStart(2,'0');
+  return `${m}:${s}`;
+}
+function renderHUD(){
+  timeEl.textContent = formatTime(timer);
+  movesEl.textContent = moves;
+}
+function toastMsg(msg){
+  toast.textContent = msg; toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 2200);
+}
+
+// Helpers
+function indexToRC(i){ return { r: Math.floor(i / N), c: i % N }; }
+function rcToIndex(r,c){ return r*N + c; }
+function neighbors(i){
+  const {r,c} = indexToRC(i); const arr=[];
+  if(r>0) arr.push(rcToIndex(r-1,c));
+  if(r<N-1) arr.push(rcToIndex(r+1,c));
+  if(c>0) arr.push(rcToIndex(r,c-1));
+  if(c<N-1) arr.push(rcToIndex(r,c+1));
+  return arr;
+}
+function isSolved(){
+  for(let i=0;i<tiles.length;i++){
+    if(tiles[i]!==i) return false;
+  }
+  return true;
+}
+
+// Move logic (click or keys)
+function moveTile(i, record=true){
+  if(!started) return;
+  const n = neighbors(i);
+  if(!n.includes(blank)) return; // only move if adjacent to blank
+  // swap
+  [tiles[i], tiles[blank]] = [tiles[blank], tiles[i]];
+  if(record){
+    history.push(i); redoStack.length = 0; // clear redo
+    moves++; playClick();
+  }
+  blank = i;
+  draw();
+  if(isSolved()){
+    started = false; clearInterval(interval);
+    celebrate();
+    saveBest();
+  }
+}
+function undo(){
+  if(history.length===0) return;
+  const last = history.pop();
+  redoStack.push(last);
+  // moving same index again will swap with blank back
+  moveTile(last, false);
+  moves = Math.max(0, moves-1);
+  draw(); renderHUD();
+}
+function redo(){
+  if(redoStack.length===0) return;
+  const i = redoStack.pop();
+  history.push(i);
+  moveTile(i, false);
+  moves++; draw(); renderHUD();
+}
+
+// Draw tiles
+function draw(){
+  if(!canvas.width) return;
+  const s = size / N;
+  ctx.clearRect(0,0,size,size);
+  for(let idx=0; idx<tiles.length; idx++){
+    const t = tiles[idx];
+    if(t===0) continue; // blank
+    const {r:dr,c:dc} = indexToRC(idx);
+    const {r:sr,c:sc} = indexToRC(t);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(dc*s, dr*s, s, s);
+    ctx.clip();
+    // draw from image slice sr,sc into destination dc,dr
+    drawSlice(sr, sc, dc, dr, s);
+    ctx.restore();
+
+    // subtle grid
+    ctx.strokeStyle = "rgba(255,255,255,.06)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(dc*s+.5, dr*s+.5, s-1, s-1);
+  }
+}
+function drawSlice(sr, sc, dc, dr, s){
+  const iw = img.width, ih = img.height;
+  const srcW = iw / N, srcH = ih / N;
+  ctx.drawImage(img, sc*srcW, sr*srcH, srcW, srcH, dc*s, dr*s, s, s);
+}
+
+// Events
+canvas.addEventListener('click', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX-rect.left, y = e.clientY-rect.top;
+  const s = size / N;
+  const c = Math.floor(x / s), r = Math.floor(y / s);
+  const i = rcToIndex(r,c);
+  moveTile(i);
+});
+
+window.addEventListener('keydown', e=>{
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','h','H','r','R','u','U','y','Y'].includes(e.key)) e.preventDefault();
+  if(e.key==='ArrowLeft'){ // move tile right of blank into blank
+    const {r,c}=indexToRC(blank); if(c<N-1) moveTile(rcToIndex(r,c+1));
+  }
+  if(e.key==='ArrowRight'){
+    const {r,c}=indexToRC(blank); if(c>0) moveTile(rcToIndex(r,c-1));
+  }
+  if(e.key==='ArrowUp'){
+    const {r,c}=indexToRC(blank); if(r<N-1) moveTile(rcToIndex(r+1,c));
+  }
+  if(e.key==='ArrowDown'){
+    const {r,c}=indexToRC(blank); if(r>0) moveTile(rcToIndex(r-1,c));
+  }
+  if(e.key==='h' || e.key==='H'){ toggleHint(); }
+  if(e.key==='r' || e.key==='R'){ shuffle(); }
+  if(e.key==='u' || e.key==='U'){ undo(); }
+  if(e.key==='y' || e.key==='Y'){ redo(); }
+});
+
+shuffleBtn.addEventListener('click', shuffle);
+
+segButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    segButtons.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    setDifficulty(parseInt(btn.dataset.size,10));
+  });
+});
+
+function setDifficulty(n){
+  N = n; buildSolved();
+  // Set blank again to 0 so the final solved image is correct
+  blank = 0; moves=0; history=[]; redoStack=[];
+  resetTimer(); draw(); fitCanvas();
+}
+
+hintBtn.addEventListener('click', toggleHint);
+function toggleHint(){
+  hint.classList.toggle('show');
+}
+
+peekBtn.addEventListener('click', ()=>{
+  hint.classList.add('show');
+  setTimeout(()=>hint.classList.remove('show'), 1200);
+});
+
+undoBtn.addEventListener('click', undo);
+redoBtn.addEventListener('click', redo);
+
+bestBtn.addEventListener('click', showBest);
+
+soundBtn.addEventListener('click', ()=>{
+  soundOn = !soundOn;
+  soundBtn.textContent = (soundOn ? '🔈 Sound: On' : '🔇 Sound: Off');
+});
+
+uploadBtn.addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', async (e)=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const url = URL.createObjectURL(file);
+  img = await loadImage(url);
+  hintImg.src = url;
+  draw();
+  toastMsg('Image loaded! Shuffle to start.');
+});
+
+// Simple click sound
+function playClick(){
+  if(!soundOn) return;
+  const a = new Audio();
+  const ctx = new (window.AudioContext||window.webkitAudioContext)();
+  const o = ctx.createOscillator(); const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.type='triangle'; o.frequency.value=420;
+  g.gain.setValueAtTime(0.08, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.08);
+  o.start(); o.stop(ctx.currentTime+0.09);
+}
+
+// Win effects & storage
+function celebrate(){
+  toastMsg(`Solved in ${formatTime(timer)} with ${moves} moves!`);
+  confettiBurst();
+}
+
+function saveBest(){
+  const key = `best_${N}`;
+  const prev = JSON.parse(localStorage.getItem(key) || 'null');
+  const rec = { time: timer, moves };
+  if(!prev || timer < prev.time){ localStorage.setItem(key, JSON.stringify(rec)); }
+}
+function showBest(){
+  const e = JSON.parse(localStorage.getItem('best_3')||'null');
+  const m = JSON.parse(localStorage.getItem('best_4')||'null');
+  const h = JSON.parse(localStorage.getItem('best_6')||'null');
+  const fmt = r=> r? `${formatTime(r.time)} · ${r.moves} moves` : '—';
+  alert(`🏆 Best Times\n\nEasy (3×3):  ${fmt(e)}\nMedium (4×4): ${fmt(m)}\nHard (6×6):   ${fmt(h)}`);
+}
+
+// Confetti
+const conf = document.getElementById('confetti');
+const cctx = conf.getContext('2d');
+function confettiBurst(){
+  conf.width = innerWidth; conf.height = innerHeight;
+  const parts = Array.from({length:120},()=>({
+    x: Math.random()*conf.width,
+    y: conf.height + Math.random()*60,
+    vx: (Math.random()-.5)*4,
+    vy: - (2+Math.random()*6),
+    s: 2 + Math.random()*4,
+    a: 1
+  }));
+  let t = 0;
+  function tick(){
+    cctx.clearRect(0,0,conf.width,conf.height);
+    for(const p of parts){
+      p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.a -= 0.01;
+      cctx.globalAlpha = Math.max(0,p.a);
+      cctx.fillStyle = ['#ff3b30','#ffd60a','#34d399','#60a5fa','#f472b6'][p.s|0 % 5];
+      cctx.fillRect(p.x,p.y,p.s,p.s*1.6);
+    }
+    cctx.globalAlpha=1;
+    if(t++<220) requestAnimationFrame(tick); else cctx.clearRect(0,0,conf.width,conf.height);
+  }
+  tick();
+}
+
+// Prevent zoom on double click
+document.addEventListener('dblclick', e=>e.preventDefault(), { passive:false });
+
+// Initial draw size
+new ResizeObserver(fitCanvas).observe(document.getElementById('board'));
+</script>
+</body>
+</html>
